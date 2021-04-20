@@ -7,20 +7,21 @@ import mysql.connector
 import datetime
 import bcrypt
 import smtplib
+import re
+import requests
 from pkcs7 import *
 from Crypto import Random
 from Crypto.Cipher import AES
 from Crypto import Random 
-from config import KEY_TOKEN_AUTH
-from config import SECRET_KEY, MYSQL_HOST, MYSQL_PORT
-from config import  MYSQL_USER, MYSQL_DB
-from config import MYSQL_PASSWORD
+from config import *
 from io import BytesIO
 from PIL import Image
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from config import PROVEEDOR_MAIL, CORREO_MAIL, PASSWORD_MAIL
 from utilTemplate import UTemplates
+from cryptography.x509 import load_pem_x509_certificate
+from cryptography.hazmat.backends import default_backend
+from cryptography.fernet import Fernet
 
 def fixStringClient(string):
     if string == True or string == False:
@@ -29,7 +30,7 @@ def fixStringClient(string):
     if string == None:
         raise Exception("Error, data is Nonetype!")
 
-    fixed = str(string).replace("'", "").replace("*", "").replace('"', "").replace("+", "").replace("|", "").replace("%", "").replace("$", "").replace("&", "").replace("=", "").replace("?", "").replace('¡', "").replace("\a", "").replace("<", "").replace(">", "").replace("/", "").replace("[", "").replace("]", "").replace("(", "").replace("´", "").replace(",", "").replace("!", "").replace("\n", "")
+    fixed = str(string).replace("'", "").replace("*", "").replace('"', "").replace("+", "").replace("|", "").replace("%", "").replace("$", "").replace("&", "").replace("=", "").replace("?", "").replace('¡', "").replace("\a", "").replace("<", "").replace(">", "").replace("/", "").replace("[", "").replace("]", "").replace("(", "").replace(")", "").replace("´", "").replace(",", "").replace("!", "").replace("\n", "")
     return fixed
 
 def checkJwt(token):
@@ -67,11 +68,12 @@ def dataTableMysql(query, rtn="datatable"):
         else:
             mycursor.close()
             return data
-    except:
+    except Exception as e:
+        print(e)
         return False
 
 def encoded_jwt(user_id):
-    return jwt.encode({'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=180), 'user_id': user_id}, KEY_TOKEN_AUTH , algorithm='HS256')
+    return jwt.encode({'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=1440), 'user_id': user_id}, KEY_TOKEN_AUTH , algorithm='HS256')
 
 def cryptStringBcrypt(string, rtn="string"):
     s = random.randint(5,10)
@@ -149,16 +151,6 @@ def CryptData(text, custom="none"):
     except:
         return [False, False]
 
-def encWithPass(clear_text,  master_key):
-    try:
-        encoder = PKCS7Encoder()
-        raw = encoder.encode(clear_text)
-        iv = Random.new().read(16)
-        cipher = AES.new( master_key, AES.MODE_CBC, iv, segment_size=128 )
-        return base64.b64encode( iv + cipher.encrypt( raw ) ).decode("utf-8")
-    except :
-        return False
-    
 def decode_jwt(jwtx):
     try:
         return jwt.decode(jwtx, KEY_TOKEN_AUTH , algorithms=['HS256'])
@@ -281,13 +273,13 @@ def fixImgB64(img):
         print(e)
         return [False, '']
     
-def sendEmail(message, receiver, subject, userRec, MsgType='html'):
+def sendEmail(receiver, subject, userRec, reason, MsgType='html'):
     """
-        message: mensaje del correo,
         MsgType: Tipo de mensaje = html-text,
         receiver: Receptor del mensaje,
         subject: Asunto del mensaje,
-        userRec: Usuario que se le envíará el mensaje
+        userRec: Información de ayuda para el mensaje,
+        reason: 1 = Bienvenida, 2 = recuperar contraseña via telefóno, 3 = recuperar contraseña via correo
     """
     try:
         server = smtplib.SMTP(PROVEEDOR_MAIL)
@@ -297,10 +289,24 @@ def sendEmail(message, receiver, subject, userRec, MsgType='html'):
         msg = MIMEMultipart()
 
         UTemplate = UTemplates()
-        UTemplate.info = {
-            'userRec': userRec
-        }
-        message = UTemplate.emailHtmlDefault()
+        
+        message = ''
+
+        if reason == "1":
+            message = UTemplate.emailHtmlDefault()
+        elif reason == "2":
+            UTemplate.info = {
+                'name': userRec['name']
+            }
+            message = UTemplate.recoveryPwdHtml()
+        elif reason == "3":
+            UTemplate.info = {
+                'code': userRec['code'],
+                'name': userRec['name']
+            }
+            message = UTemplate.recoveryPwdEmailHtml()
+        else:
+            return False
 
         msg.attach(MIMEText(message, MsgType))
         msg['From'] = CORREO_MAIL
@@ -308,5 +314,152 @@ def sendEmail(message, receiver, subject, userRec, MsgType='html'):
         msg['Subject'] = subject
         server.sendmail(msg['From'] , msg['To'], msg.as_string())
         return True
+    except Exception as e:
+        print("ERROR FROM sendEmail:")
+        print(e)
+        return False
+
+def decodeAuth2CertGoogleAPI(id_token):
+    try:
+        cert_obj = load_pem_x509_certificate(CERT_AUTH2, default_backend())
+        pub_key = cert_obj.public_key()
+        token = jwt.decode(id_token, pub_key, algorithms='RS256',audience=AUDIENCE_AUTH2, verify=True)
+        return [True, token]
+    except Exception as e:
+        print("FROM decodeAuth2CertGoogleAPI error:")
+        print(e)
+        return [False, '']
+
+def checkStringEmail(email):
+    try:
+        root = '^(\w|\.|\_|\-)+[@](\w|\_|\-|\.)+[.]\w{2,3}$'
+        if(re.search(root, email)):
+            return True
+        else:
+            return False
+    except Exception as e:
+        print("ERROR FROM checkStringEmail:")
+        print(e)
+        return False
+
+def checkStringNumberTel(number):
+    try:
+        root = ['0','1', '2', '3','4', '5', '6', '7', '8', '9']
+        if number is None:
+            return False
+
+        if len(number) != 12:
+            return False
+        
+        for n in number:
+            if n not in root:
+                return False
+
+        return True
+    except Exception as e:
+        print("ERROR FROM checkStringNumberTel:")
+        print(e)
+        return False
+
+def checkStringNumberSizeType(number, size=0):
+    try:
+        root = ['0','1','2','3','4','5','6','7','8','9']
+        if len(number) != size:
+            return False
+        
+        counter = 0
+
+        for n in number :
+            if n not in root:
+                return False
+
+            if counter == size:
+                break
+
+            counter =+ 1
+        
+        return True
+    except Exception as e:
+        print("ERROR FROM checkStringNumberSizeType:")
+        print(e)
+
+def encWithPass(data,  pwd=None, pwdDefault=True):
+    # Fernet.generate_key() / Generate random key
+    try:
+        if pwdDefault:
+            pwd = HIGH_SECRET_KEY_PWD
+            
+        key= pwd.encode()
+        fernet = Fernet(key)
+        encMessage = fernet.encrypt(data.encode())
+        return [True, encMessage.decode('utf-8')]
+    except Exception as e:
+        print("ERROR FROM encWithPass:")
+        print(e)
+        return [False, '']
+    
+def decWithPass(dataEnc, isJson=False, pwd=None, pwdDefault=True):
+    # for use dict: eval(return[1])
+    try:
+        if pwdDefault:
+            pwd = HIGH_SECRET_KEY_PWD
+            
+        key= pwd.encode()
+        fernet = Fernet(key)
+        dec = fernet.decrypt(dataEnc.encode())
+        decDecoded = dec.decode('utf-8')
+        decF = decDecoded
+        if isJson:
+            decF = eval(decDecoded)
+
+        return [True, decF]
+    except Exception as e:
+        print("ERROR FROM decWithPass:")
+        print(e)
+        return [False, '']
+
+def createJwt(info, time=10):
+    try:
+        return jwt.encode({'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=time), 'info': info}, KEY_TOKEN_AUTH , algorithm='HS256')
+    except Exception as e:
+        print("ERROR FROM createJwt:")
+        print(e)
+        return False
+
+def createRandomNumberSize(size = 0):
+    try:
+        if size == 0 or size > 64:
+            return False
+        else:
+            key = '0123456789'
+            return ''.join(random.sample(key, size))
     except :
         return False
+
+def sendSMS(number, msg):
+    try:
+        queryCredits = requests.get(url=API_QUERY_CREDITS_SMS_env)
+        querySend = queryCredits.text
+        
+        print("\nMoney = "+querySend)
+        RSend = requests.get(url=API_AUTH2_SMS_env+"&message="+msg+"&numero="+number+"")
+  
+        data = RSend.text
+
+        if data[0] == "0":
+            queryCredits = requests.get(url=API_QUERY_CREDITS_SMS_env)
+            querySend = queryCredits.text
+
+            print("Money = "+querySend)
+            return True
+        else:
+            print("Money is < $0.6")
+            return False
+
+    except Exception as e:
+        print("ERROR FROM sendSMS:")
+        print(e)
+        return False
+
+def createOTPNumberRecovery():
+    pass

@@ -11,7 +11,7 @@ CORS(app, resources={
     r"/*": {"origins": "*"},
     r"/*": {
         "origins": ["*"],
-        "methods": ["OPTIONS", "POST"],
+        "methods": ["OPTIONS", "GET", "POST", "PUT", "DELETE"],
         "allow_headers": ["Authorization", "Content-Type"],
         }
     })
@@ -19,3 +19,12 @@ CORS(app, resources={
 app.add_url_rule(user["login_user"], view_func=user["login_user_controllers"])
 
 app.add_url_rule(user["register_user"], view_func=user["register_user_controllers"])
+
+app.add_url_rule(admin["manage_events"], view_func=admin["manage_events_controllers"])
+
+app.add_url_rule(user["recovery_account"], view_func=user["recovery_account_controllers"])
+
+app.add_url_rule(user["validate_code_recovery_account"], view_func=user["validate_code_recovery_account_controllers"])
+
+app.add_url_rule(user["change_pwd"], view_func=user["change_pwd_controllers"])
+

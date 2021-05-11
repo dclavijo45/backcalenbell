@@ -206,12 +206,12 @@ class Models:
             if not checkStringNumberTel(account):
                 return Response
             else:
-                querySQL = "SELECT numero, id_provisional, correo, nombres, usuario FROM usuarios WHERE numero = '{}'".format(account[2::])
+                querySQL = "SELECT id_usuario, numero, correo, nombres, usuario FROM usuarios WHERE numero = '{}'".format(account[2::])
         elif type == "email" and account:
             if not checkStringEmail(account):
                 return Response
             else:
-                querySQL = "SELECT id_provisional, correo, nombres, usuario FROM usuarios WHERE correo = '{}';".format(account)
+                querySQL = "SELECT id_usuario, correo, nombres, usuario FROM usuarios WHERE correo = '{}';".format(account)
         else:
             return Response
 
@@ -220,7 +220,6 @@ class Models:
         if dataDB:
             for data in dataDB:
                 if type == "number":
-
                     # Validate if not Google
                     if data[2] == data[4][0:len(data[2])]:
                         return Response

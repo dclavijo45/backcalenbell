@@ -8,11 +8,11 @@ app = Flask(__name__)
 app.secret_key = SECRET_KEY
 
 CORS(app, resources={
-    r"/*": {"origins": "*"},
+    r"/*": {'origins': '*'},
     r"/*": {
-        "origins": ["*"],
-        "methods": ["OPTIONS", "GET", "POST", "PUT", "DELETE"],
-        "allow_headers": ["Authorization", "Content-Type"],
+        'origins': ['*'],
+        'methods': ['OPTIONS', 'GET', 'POST', 'PUT', 'DELETE'],
+        'allow_headers': ['Authorization', 'Content-Type', 'Body'],
         }
     })
 

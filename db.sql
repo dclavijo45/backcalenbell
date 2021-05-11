@@ -3,36 +3,36 @@ use calenbellback_db;
 
 create table usuarios(
 	id_usuario int primary key auto_increment not null,
-	nombres char(20),
+	nombres char(30) not null,
 	correo varchar(255) unique not null,
-	usuario char(40) not null unique,
-    id_provisional char(50) unique not null,
-    numero char(10) unique null,
-    otp_token varchar(100) unique null,
-	password varchar(255) not null
+	usuario char(40) unique not null,
+    numero char(10) unique,
+	password char(255) not null
 );
 create table eventos(
 	id int primary key auto_increment not null,
-	titulo char(70),
-	hora time,
-	fecha date,
-	descripcion varchar(250),
-	codigo char(50) not null,
+	titulo char(70) not null,
+	hora time not null,
+	fecha date not null,
+	descripcion varchar(250) not null,
+	codigo int not null,
     tipo_ev char(1) not null,
-    icono varchar(4),
-    foreign key (codigo) references usuarios(id_provisional)
+    icono char(1),
+    foreign key (codigo) references usuarios(id_usuario)
 );
 create table eventos_grupales(
 	id int primary key auto_increment not null,
-    idusuario int,
-    idevento int,
-    foreign key (idusuario) references usuarios(id_usuario),
-    foreign key (idevento) references eventos(id)
+    id_usuario int not null,
+    id_evento int not null,
+    estado_invitacion tinyint(1) not null,
+    foreign key (id_usuario) references usuarios(id_usuario),
+    foreign key (id_evento) references eventos(id)
 );
-create table usuarios_contactos(
-	id_con int primary key auto_increment not null,
-    idusuario int,
-    id_contacto int,
-    foreign key (idusuario) references usuarios(id_usuario),
+create table contactos(
+    id_usuario int not null,
+    id_contacto int not null,
+    primary key(id_usuario, id_contacto),
+    estado_invitación tinyint(1) not null,
+    foreign key (id_usuario) references usuarios(id_usuario),
     foreign key (id_contacto) references usuarios(id_usuario)
 );

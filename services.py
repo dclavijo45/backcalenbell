@@ -30,7 +30,7 @@ def fixStringClient(string):
     if string == None:
         raise Exception("Error, data is Nonetype!")
 
-    fixed = str(string).replace("'", "").replace("*", "").replace('"', "").replace("+", "").replace("|", "").replace("%", "").replace("$", "").replace("&", "").replace("=", "").replace("?", "").replace('¡', "").replace("\a", "").replace("<", "").replace(">", "").replace("/", "").replace("[", "").replace("]", "").replace("(", "").replace(")", "").replace("´", "").replace(",", "").replace("!", "").replace("\n", "")
+    fixed = str(string).replace("'", "").replace("*", "").replace('"', "").replace("+", "").replace("|", "").replace("%", "").replace("$", "").replace("&", "").replace("=", "").replace("?", "").replace('¡', "").replace("\a", "").replace("<", "").replace(">", "").replace("/", "").replace("[", "").replace("]", "").replace("(", "").replace(")", "").replace("´", "").replace("!", "").replace("\n", "")
     return fixed
 
 def checkJwt(token):
@@ -69,6 +69,7 @@ def dataTableMysql(query, rtn="datatable"):
             mycursor.close()
             return data
     except Exception as e:
+        print("ERROR in dataTableMysql:")
         print(e)
         return False
 
@@ -319,14 +320,42 @@ def sendEmail(receiver, subject, userRec, reason, MsgType='html'):
         print(e)
         return False
 
-def decodeAuth2CertGoogleAPI(id_token):
+def decodeAuth2CertGoogleAPI_py(id_token):
     try:
-        cert_obj = load_pem_x509_certificate(CERT_AUTH2, default_backend())
-        pub_key = cert_obj.public_key()
-        token = jwt.decode(id_token, pub_key, algorithms='RS256',audience=AUDIENCE_AUTH2, verify=True)
-        return [True, token]
+        certs = requests.get("https://www.googleapis.com/oauth2/v1/certs").json()
+        for x in certs:
+            for y in certs:
+                try:
+                    CRT = certs[x]
+                    CERT_AUTH2 = str.encode(CRT)
+                    cert_obj = load_pem_x509_certificate(CERT_AUTH2, default_backend())
+                    pub_key = cert_obj.public_key()
+                    token = jwt.decode(id_token, pub_key, algorithms='RS256',audience=AUDIENCE_AUTH2, verify=True)
+                    return [True, token]
+                except Exception as e2:
+                    print("Error decode")
+                    print(e2)
+                    continue
+            break
     except Exception as e:
         print("FROM decodeAuth2CertGoogleAPI error:")
+        print(e)
+        return [False, '']
+
+def decodeAuth2CertGoogleAPI_GO(id_token):
+    try:
+        verify = requests.get("https://www.googleapis.com/oauth2/v3/tokeninfo?id_token={}".format(id_token)).json()
+        
+        for k, v in verify.items():
+            if k == "error_description":
+                return [False, '']
+
+            if k == "email_verified":
+                return [True, verify]
+
+        return [False, '']
+    except Exception as e:
+        print("ERROR in decodeAuth2CertGoogleAPI_GO")
         print(e)
         return [False, '']
 
@@ -461,5 +490,16 @@ def sendSMS(number, msg):
         print(e)
         return False
 
+def checkIfNumberInt(number):
+    try:
+        int(number)
+        return True
+    except Exception as e:
+        print("ERROR IN checkIfNumberInt:")
+        print(e)
+        return False
+
 def createOTPNumberRecovery():
     pass
+
+

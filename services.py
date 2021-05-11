@@ -499,7 +499,8 @@ def sendSMS(number, msg):
         querySend = queryCredits.text
         
         print("\nMoney = "+querySend)
-        RSend = requests.get(url=API_AUTH2_SMS_env+"&message="+msg+"&numero="+number+"")
+
+        RSend = requests.get(url=API_AUTH2_SMS_env+"&message="+msg+"&numero="+number)
   
         data = RSend.text
 
@@ -508,9 +509,13 @@ def sendSMS(number, msg):
             querySend = queryCredits.text
 
             print("Money = "+querySend)
+
             return True
         else:
-            print("Money is < $0.6")
+            print("\nSms not sent")
+
+            print(data)
+
             return False
 
     except Exception as e:

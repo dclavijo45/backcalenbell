@@ -21,7 +21,13 @@ from email.mime.text import MIMEText
 from utilTemplate import UTemplates
 from cryptography.x509 import load_pem_x509_certificate
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.fernet import Fernet
+
+# KEYS
+
+bytesRandomGlobal = os.urandom(16)
 
 def fixStringClient(string):
     if string == True or string == False:
@@ -173,7 +179,7 @@ def initChat(id_provisional_receptor, id_provisional_emisor):
     
 def createStringRandom(size = 0):
     try:
-        if size == 0 or size > 64:
+        if size <= 0 or size > 64:
             return False
         else:
             key = 'abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMOPQRSTUVWXYZ+/='
@@ -412,13 +418,24 @@ def checkStringNumberSizeType(number, size=0):
         print("ERROR FROM checkStringNumberSizeType:")
         print(e)
 
-def encWithPass(data,  pwd=None, pwdDefault=True):
+def encWithPass(data,  pwd=None):
     # Fernet.generate_key() / Generate random key
     try:
-        if pwdDefault:
+        if pwd == None:
             pwd = HIGH_SECRET_KEY_PWD
-            
-        key= pwd.encode()
+
+        pwd = pwd.encode()  
+        salt = os.urandom(16)
+        kdf = PBKDF2HMAC(
+            algorithm = hashes.SHA256(),
+            length = 32,
+            salt = bytesRandomGlobal,
+            iterations = 100000,
+            backend = default_backend()
+        )
+        pwd = base64.urlsafe_b64encode(kdf.derive(pwd))
+
+        key= pwd
         fernet = Fernet(key)
         encMessage = fernet.encrypt(data.encode())
         return [True, encMessage.decode('utf-8')]
@@ -427,13 +444,24 @@ def encWithPass(data,  pwd=None, pwdDefault=True):
         print(e)
         return [False, '']
     
-def decWithPass(dataEnc, isJson=False, pwd=None, pwdDefault=True):
+def decWithPass(dataEnc, isJson=False, pwd=None):
     # for use dict: eval(return[1])
     try:
-        if pwdDefault:
+        if pwd == None:
             pwd = HIGH_SECRET_KEY_PWD
             
-        key= pwd.encode()
+        pwd = pwd.encode()  
+        
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length = 32,
+            salt = bytesRandomGlobal,
+            iterations = 100000,
+            backend = default_backend()
+        )
+        pwd = base64.urlsafe_b64encode(kdf.derive(pwd))
+
+        key= pwd
         fernet = Fernet(key)
         dec = fernet.decrypt(dataEnc.encode())
         decDecoded = dec.decode('utf-8')
@@ -498,8 +526,4 @@ def checkIfNumberInt(number):
         print("ERROR IN checkIfNumberInt:")
         print(e)
         return False
-
-def createOTPNumberRecovery():
-    pass
-
 

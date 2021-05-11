@@ -5,20 +5,20 @@ class Models:
     
     def login(self):
 
-        Response = {"logged": False, "token": None, "name": None, "email": None, "user": None, "private_key": None}
+        Response = {"logged": False, "token": None, "name": None, "email": None, "user": None}
 
         querySQL = ""
         type = self.info['type']
         id_token = self.info['id_token'] if self.info['id_token'] else None
 
         if type == "Google" and id_token:
-            email = decodeAuth2CertGoogleAPI(id_token)
+            email = decodeAuth2CertGoogleAPI_GO(id_token)
             if email[0] and email[1]['email_verified']:
-                querySQL = "SELECT nombres, correo, usuario, id_provisional FROM usuarios WHERE correo = '{}'".format(email[1]['email'])
+                querySQL = "SELECT id_usuario, nombres, correo, usuario FROM usuarios WHERE correo = '{}'".format(email[1]['email'])
             else:
                 return Response
         elif type == "normal" and not id_token:
-            querySQL = "SELECT nombres, correo, usuario, password, id_provisional FROM usuarios WHERE usuario = '{}'".format(self.info['user'])
+            querySQL = "SELECT id_usuario, nombres, correo, usuario, password FROM usuarios WHERE usuario = '{}'".format(self.info['user'])
         else:
             return Response
 
@@ -26,9 +26,9 @@ class Models:
 
         if dataDB and type == "normal":
             for data in dataDB:
-                if decryptStringBcrypt(self.info['password'], data[3]):
-                    jwt = encoded_jwt(data[4])
-                    Response = {"logged": True, "token": jwt, "name": data[0], "email": data[1], "user": data[2], "private_key": int(data[4])}
+                if decryptStringBcrypt(self.info['password'], data[4]):
+                    jwt = encoded_jwt(data[0])
+                    Response = {"logged": True, "token": jwt, "name": data[1], "email": data[2], "user": data[3]}
                     return Response
                 else:
                     return Response
@@ -37,8 +37,8 @@ class Models:
                 if email[1]['email'] != data[2][0:len(email[1]['email'])]:
                         return Response
 
-                jwt = encoded_jwt(data[3])
-                Response = {"logged": True, "token": jwt, "name": data[0], "email": data[1], "user": 'SignGoogle', "private_key": int(data[3])}
+                jwt = encoded_jwt(data[0])
+                Response = {"logged": True, "token": jwt, "name": data[1], "email": data[2], "user": 'GoogleUser'}
                 return Response
         else:
             return Response
@@ -54,18 +54,16 @@ class Models:
         id_token = self.info['id_token'] if self.info['id_token'] else None
 
         if type == "Google" and id_token:
-            deAuth2 = decodeAuth2CertGoogleAPI(id_token)
+            deAuth2 = decodeAuth2CertGoogleAPI_GO(id_token)
             if deAuth2[0] and deAuth2[1]['email_verified']:
                 hash_password = cryptStringBcrypt(str(getBigRandomString() + getMinRandomString()))
-                _randomID = getBigRandomString()
 
-                querySQL = "INSERT INTO usuarios(nombres, correo, usuario, password, id_provisional) VALUES('{}', '{}', '{}', '{}','{}')".format(deAuth2[1]['name'], deAuth2[1]['email'], deAuth2[1]['email'] + str(hash_password), hash_password, _randomID)
+                querySQL = "INSERT INTO usuarios(nombres, correo, usuario, password) VALUES('{}', '{}', '{}', '{}')".format(deAuth2[1]['name'], deAuth2[1]['email'], deAuth2[1]['email'] + str(hash_password), hash_password)
             else:
                 return Response
         elif type == "normal" and not id_token:
             hash_password = cryptStringBcrypt(self.info['password'])
-            _randomID = getBigRandomString()
-            querySQL = "INSERT INTO usuarios(nombres, correo, usuario, password, id_provisional) VALUES('{}', '{}', '{}', '{}','{}')".format(self.info['name'], self.info['email'], self.info['user'], hash_password, _randomID)
+            querySQL = "INSERT INTO usuarios(nombres, correo, usuario, password) VALUES('{}', '{}', '{}', '{}')".format(self.info['name'], self.info['email'], self.info['user'], hash_password)
         else:
             return Response
         
@@ -89,24 +87,28 @@ class Models:
         
         user_id = decode_jwt(self.info['token']).get("user_id")
 
-        dataDB = dataTableMysql("SELECT id, titulo, time_format(hora, '%H "'%i'" %p') as hour, day(fecha) as day, month(fecha) as month, year(fecha) as year, descripcion, codigo, tipo_ev, icono FROM eventos WHERE codigo = {}".format(user_id))
-
         if user_id:
-            Response['auth_token'] = True
+            queryUserSQL = "SELECT id_usuario FROM usuarios WHERE id_usuario = '{}'".format(user_id)
 
-        for data in dataDB:
-            Response['events'].append({
-                'id': data[0],
-                'title': data[1],
-                'hour': data[2],
-                'day': data[3],
-                'month': data[4],
-                'year': data[5],
-                'description': data[6],
-                'code': '',
-                'type_ev': data[7],
-                'icon': data[8]
-            })
+            dataUserDB = dataTableMysql(queryUserSQL)
+            if dataUserDB:
+                Response['auth_token'] = True
+
+                dataDB = dataTableMysql("SELECT id, titulo, time_format(hora, '"'%h:%i %p'"') as hour, CASE WHEN DAY(fecha) <= 9 THEN CONCAT('0', DAY(fecha)) ELSE DAY(fecha) END as DAY, CASE WHEN MONTH(fecha) <= 9 THEN CONCAT('0', MONTH(fecha)) ELSE MONTH(fecha) END as MONTH, YEAR(fecha) as year, descripcion, codigo, tipo_ev, icono FROM eventos WHERE codigo = {} ORDER BY fecha ASC, hora ASC".format(user_id))
+
+                for data in dataDB:
+                    Response['events'].append({
+                        'id': data[0],
+                        'title': data[1],
+                        'hour': data[2],
+                        'day': data[3],
+                        'month': data[4],
+                        'year': data[5],
+                        'description': data[6],
+                        'check': False,
+                        'type_ev': data[8],
+                        'icon': data[9]
+                    })
             
         return Response
 
@@ -120,13 +122,75 @@ class Models:
             return Response
         
         user_id = decode_jwt(self.info['token']).get("user_id")
+        print(self.info['hour'])
 
-        dataDB = dataTableMysql("INSERT INTO eventos(titulo, hora, fecha, descripcion, codigo, tipo_ev, icono) VALUES('{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(self.info['title'], self.info['hour'], self.info['date'], self.info['description'], user_id, self.info['type_ev'], self.info['icon']), "rowcount")
+        dataDB = dataTableMysql("INSERT INTO eventos(titulo, hora, fecha, descripcion, codigo, tipo_ev, icono) VALUES('{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(self.info['title'], self.info['hour'], self.info['date'], self.info['description'], user_id, self.info['type_ev'], self.info['icon'] if len(self.info['icon']) >= 1 else ""), "rowcount")
 
         Response = {
             'auth_token': True,
             'saved': dataDB
         }
+
+        return Response
+
+    def changeEvents(self):
+        Response = {
+            'auth_token': False,
+            'saved': False
+        }
+
+        try:
+            check_jwt = checkJwt(self.info['token'])
+
+            if not check_jwt:
+                return Response
+            else:
+                Response['auth_token'] = True
+
+            id_event = str(self.info['id_event'])
+
+            check_id_event = checkStringNumberSizeType(id_event, len(id_event))
+            
+            if not check_id_event:
+                return Response
+
+            user_id = decode_jwt(self.info['token']).get("user_id")
+
+            dataDB = dataTableMysql("UPDATE eventos SET titulo = '{}', hora = '{}', fecha = '{}', descripcion = '{}', tipo_ev = '{}', icono = '{}' WHERE codigo = '{}' AND id = '{}'".format(self.info['title'], self.info['hour'], self.info['date'], self.info['description'], self.info['type_ev'], self.info['icon'] if len( self.info['icon']) >= 1 else "", user_id, id_event), "rowcount")
+
+            Response['saved'] = True
+
+            return Response
+        except Exception as e:
+            print("ERROR IN changeEvents (Model):")
+            print(e)
+            return Response
+
+    def deleteEvents(self):
+        Response = {
+            'auth_token': False,
+            'deleted': False
+        }
+
+        if not checkJwt(self.info['token']) and not id_event:
+            return Response
+        
+        user_id = decode_jwt(self.info['token']).get("user_id")
+
+        Response['auth_token'] = True
+
+        events = self.info['events'].split(',') if self.info['events'] else None
+
+        for item in events:
+            if not checkIfNumberInt(item):
+                return Response
+
+        for item in events:
+            deleteEvent = dataTableMysql("DELETE FROM eventos WHERE id = '{}' and codigo = '{}' ".format(item, user_id), "rowcount")
+            if deleteEvent:
+                Response['deleted'] = True
+            else:
+                Response['deleted'] = False
 
         return Response
 
@@ -142,7 +206,7 @@ class Models:
             if not checkStringNumberTel(account):
                 return Response
             else:
-                querySQL = "SELECT numero, id_provisional, correo, nombres FROM usuarios WHERE numero = '{}'".format(account[2::])
+                querySQL = "SELECT numero, id_provisional, correo, nombres, usuario FROM usuarios WHERE numero = '{}'".format(account[2::])
         elif type == "email" and account:
             if not checkStringEmail(account):
                 return Response
@@ -156,6 +220,11 @@ class Models:
         if dataDB:
             for data in dataDB:
                 if type == "number":
+
+                    # Validate if not Google
+                    if data[2] == data[4][0:len(data[2])]:
+                        return Response
+
                     codeRandom = createRandomNumberSize(6)
                     
                     # Using threads for send email and SMS

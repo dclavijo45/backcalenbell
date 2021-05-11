@@ -1,33 +1,30 @@
-from env import *
+from os import environ as env
 
 #   app config
+KEY_TOKEN_AUTH = env['key_auth_token']
+SECRET_KEY = env['secret_key']
+HIGH_SECRET_KEY_PWD = env['high_secret_key_pwd']
 
-KEY_TOKEN_AUTH = KEY_TOKEN_AUTH_env
-SECRET_KEY = SECRET_KEY_env
-MYSQL_DB = MYSQL_DB_env
-MYSQL_PASSWORD = MYSQL_PASSWORD_env
-MYSQL_PORT = MYSQL_PORT_env
-MYSQL_USER = MYSQL_USER_env
-MYSQL_PORT = MYSQL_PORT_env
-MYSQL_HOST = MYSQL_HOST_env
-HIGH_SECRET_KEY_PWD = HIGH_SECRET_KEY_PWD_env
+# MySQL config 
+MYSQL_DB = env['mysql_db']
+MYSQL_PASSWORD = env['mysql_password']
+MYSQL_PORT = env['mysql_port']
+MYSQL_USER = env['mysql_user']
+MYSQL_HOST = env['mysql_host']
 
 #   mailconfig
-
-PROVEEDOR_MAIL = PROVEEDOR_MAIL_env
-CORREO_MAIL = CORREO_MAIL_env
-PASSWORD_MAIL = PASSWORD_MAIL_env
+PROVEEDOR_MAIL = env['proveedor_mail']
+CORREO_MAIL = env['correo_mail']
+PASSWORD_MAIL = env['password_mail']
 
 # # DropBox Config
-
 # ACCESS_TOKEN = TOKEN_DROPBOX_env
 
-# Google Auth API
 
-CERT_AUTH2 = str.encode("-----BEGIN CERTIFICATE-----\nMIIDJjCCAg6gAwIBAgIIZIFpCJxq8Q4wDQYJKoZIhvcNAQEFBQAwNjE0MDIGA1UE\nAxMrZmVkZXJhdGVkLXNpZ25vbi5zeXN0ZW0uZ3NlcnZpY2VhY2NvdW50LmNvbTAe\nFw0yMTA0MDkwNDI5NTVaFw0yMTA0MjUxNjQ0NTVaMDYxNDAyBgNVBAMTK2ZlZGVy\nYXRlZC1zaWdub24uc3lzdGVtLmdzZXJ2aWNlYWNjb3VudC5jb20wggEiMA0GCSqG\nSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCr8ahftcBJay0DsJmzdpxSAJUHZCHCG6kX\nVZmwivoWgj4OktqJOUYvMQmWQspbae2FQ/fmWqFeKVoic4A3zqw4SyzPiH+4TJxW\nkz/EsFFH7tGqzmJfKl7fjQlXik3Ou5dfln9DgPtgu+bYTVBaK+9MrgWJIJ4Fujvw\numSvlq2IeZYRwsQ2iq6EQd2mKPfCml0OUvl5QDLjEfoCK3kgN7rpF6EEQZ+zcwuc\nIrIYA8hqaZJSu5XQESZQ995wuhc2Gm4B+gazdM77kIi3WOZpEvYH4DZTGE9CSkTh\nD5To4nzWLifOzfh21pCEV9P2lmqSA7AgngOOPscjXEo6agTEwIMvAgMBAAGjODA2\nMAwGA1UdEwEB/wQCMAAwDgYDVR0PAQH/BAQDAgeAMBYGA1UdJQEB/wQMMAoGCCsG\nAQUFBwMCMA0GCSqGSIb3DQEBBQUAA4IBAQAZMNGa3jD5v0bv8Mog4CHvsT6saYg5\nDUeTLxJNogTEqehR09zGseIfAxAPzO01RCwUUnurkyuO0nvI3/49D9z/6JUBRI/m\nAXCMH+JgI2y4cwW4bjv9bOqPnAOxANIAJihbyptj7Ut6/BMNrKm5FNNeLxc9M+65\n918ajudibfrloElb7voAfYRAO/pb5926/UInV7+rrvfpFMiMyX7yAk+s8uuK/Zmz\niPD5q7MrzKHOpBvxUrvquvPachZJ8QqdfmGXoDJb4Imnpsqjlf5zfkiF6v3UZ34a\nv4fpfuhc69QbcNE5k7z8rhlxqcABgEtaeeLs4qL9B5H3bmflP/Kh+aHl\n-----END CERTIFICATE-----\n")
-AUDIENCE_AUTH2 = '168438402105-f7om5vulo404bcpg8evq0h67f876rn4h.apps.googleusercontent.com'
+# Google Auth API
+AUDIENCE_AUTH2 = env['key_audience_google']
+
 
 # SMS API
-
-API_AUTH2_SMS_env = API_AUTH2_SMS
-API_QUERY_CREDITS_SMS_env = API_QUERY_CREDITS_SMS
+API_AUTH2_SMS_env = env['api_sms']
+API_QUERY_CREDITS_SMS_env = env['api_query_credits_sms']

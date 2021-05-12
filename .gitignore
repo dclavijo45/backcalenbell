@@ -7,3 +7,4 @@ live.py
 test.html
 TODO.md
 env-test/
+restart-deploy.py

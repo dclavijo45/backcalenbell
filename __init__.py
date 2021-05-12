@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_cors import CORS
-from routes import *
-from config import SECRET_KEY
+from routes.routes import *
+from config.config import SECRET_KEY
 
 app = Flask(__name__)
 

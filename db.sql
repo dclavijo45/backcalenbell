@@ -7,7 +7,8 @@ create table usuarios(
 	correo varchar(255) unique not null,
 	usuario char(40) unique not null,
     numero char(10) unique,
-	password char(255) not null
+	password char(255) not null,
+    foto_perfil varchar(150) -- NEW
 );
 create table eventos(
 	id int primary key auto_increment not null,
@@ -32,7 +33,7 @@ create table contactos(
     id_usuario int not null,
     id_contacto int not null,
     primary key(id_usuario, id_contacto),
-    estado_invitación tinyint(1) not null,
+    estado_invitacion tinyint(1) not null,
     foreign key (id_usuario) references usuarios(id_usuario),
     foreign key (id_contacto) references usuarios(id_usuario)
 );

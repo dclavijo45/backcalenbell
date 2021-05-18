@@ -356,3 +356,185 @@ class Models:
 
         return Response
 
+    # Chat
+    def initChatM(self):
+        Response = {
+            'auth_token': False,
+            'token': None,
+            'invitation_status': None
+        }
+
+        Payload = {
+            'friends': None,
+            'in_group': None,
+            'type_chat': None,
+            'receiver': None,
+            'transmitter': None,
+            'invitation_status': None
+        }
+
+        token = decode_jwt(self.info['token'] if self.info['token'] else None)
+
+        if not token:
+            return Response
+
+        user_id = token.get("user_id")
+
+        if not checkIfNumberInt(user_id):
+            return Response
+
+        Response['auth_token'] = True
+        
+        type_chat = str(self.info['chat_type']) if self.info['chat_type'] else None
+
+        if len(type_chat) != 1:
+            return Response
+
+        if type_chat not  in ['1', '2']:
+            return Response
+
+        Payload['type_chat'] = type_chat
+
+        if type_chat == "1":
+            id_emisor = user_id
+
+            if not checkIfNumberInt(id_emisor):
+                return Response
+
+            Payload['transmitter'] = id_emisor
+
+            id_receptor = self.info['receiver'] if self.info['receiver'] else None
+
+            if not checkIfNumberInt(id_receptor):
+                return Response
+
+            if id_emisor == id_receptor:
+                return Response
+
+            Payload['receiver'] = id_receptor
+
+            resultado_init = initChat(
+                id_emisor = id_emisor,
+                id_receptor = id_receptor,
+                typeChat = type_chat
+                )
+
+            if not resultado_init['existen_usuarios']:
+                return Response
+            
+            Payload['invitation_status'] = resultado_init ['estado_invitacion']
+
+            Payload['friends'] = resultado_init['son_amigos']
+
+            token_val_socket = encoded_jwt(
+                user_id = user_id,
+                data = {
+                    'friends': Payload['friends'],
+                    'transmitter': Payload['transmitter'],
+                    'receiver': Payload['receiver']
+                },
+                custom = True
+                )
+            
+            Response['token'] = token_val_socket if token_val_socket else None
+
+            Response['invitation_status'] = Payload['invitation_status']
+
+            return Response
+
+        else:
+            id_grupo = self.info['group'] if self.info['group'] else None
+
+            if not checkIfNumberInt(id_grupo):
+                return Response
+            
+            id_emisor = user_id
+
+            if not checkIfNumberInt(id_emisor):
+                return Response
+
+            Payload['transmitter'] = id_emisor
+
+            resultado_init = initChat(
+                id_emisor = id_emisor,
+                id_evento_grupal = id_grupo,
+                typeChat = type_chat
+                )
+
+            if resultado_init['existe_grupo'] == False:
+                return Response
+
+            print("pass") #
+
+            Payload['invitation_status'] = resultado_init['estado_invitacion']
+            
+            Payload['in_group'] = resultado_init['pertenece_grupo']
+
+            token_val_socket = encoded_jwt(
+                user_id = user_id,
+                data = {
+                    'in_group': Payload['in_group'],
+                    'transmitter': Payload['transmitter']
+                },
+                custom = True
+            )
+
+            Response['token'] = token_val_socket if token_val_socket else None
+
+            Response['invitation_status'] = Payload['invitation_status']
+
+            return Response
+
+        return Response
+
+    # Manage contacts and groups
+    def getContactsG(self):
+        Response = {
+            'auth_token': False,
+            'contacts': [] # dictionary = type, name, id, photo
+        }
+
+        if not checkJwt(self.info['token']):
+            return Response
+
+        Response['auth_token'] = True
+        
+        user_id = decode_jwt(self.info['token']).get("user_id")
+
+        fetchContacts = dataTableMysql("SELECT c.id_usuario, c.id_contacto, IF(u.id_usuario = '{}', NULL, u.nombres) AS nombre_usuario, IF(u1.id_usuario = '{}', NULL, u1.nombres) AS nombre_contacto, IF(u.id_usuario = '{}', NULL, u.foto_perfil) as foto_perfil_usuario, IF(u1.id_usuario = '{}', NULL, u1.foto_perfil) as foto_perfil_contacto FROM usuarios u INNER JOIN contactos c ON u.id_usuario=c.id_usuario INNER JOIN usuarios u1 ON u1.id_usuario=c.id_contacto WHERE (u.id_usuario = '{}' OR u1.id_usuario = '{}') AND c.estado_invitacion = 1;".format(user_id,user_id,user_id,user_id,user_id,user_id))
+
+        if not fetchContacts:
+            return Response
+
+        for contact in fetchContacts:
+            if str(contact[0]) != str(user_id) and str(contact[1]) == str(user_id):
+                Response['contacts'].append({
+                    'type': 1,
+                    'name': contact[2],
+                    'id': contact[0],
+                    'photo': contact[4]
+                })
+            
+            if str(contact[0]) == str(user_id) and str(contact[1]) != str(user_id):
+                Response['contacts'].append({
+                    'type': 1,
+                    'name': contact[3],
+                    'id': contact[1],
+                    'photo': contact[5]
+                })
+            
+
+        fetchGroups = dataTableMysql("SELECT eg.id, eg.id_evento, e.titulo from eventos_grupales eg, eventos e WHERE eg.id_evento = e.id and id_usuario = '{}'".format(user_id))
+
+        if not fetchContacts:
+            return Response
+
+        for group in fetchGroups:
+            Response['contacts'].append({
+                'type': 2,
+                'name': group[2],
+                'id': group[1]
+            })
+
+        return Response
+

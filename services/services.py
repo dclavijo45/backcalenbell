@@ -30,14 +30,21 @@ from cryptography.fernet import Fernet
 bytesRandomGlobal = os.urandom(16)
 
 def fixStringClient(string):
-    if string == True or string == False:
-        return string
+    try:
+        if string == True or string == False:
+            return string
     
-    if string == None:
-        raise Exception("Error, data is Nonetype!")
+        if string == None:
+            print("meg from fixStringClient: ")
+            print("string is NoneType")
+            return False
 
-    fixed = str(string).replace("'", "").replace("*", "").replace('"', "").replace("+", "").replace("|", "").replace("%", "").replace("$", "").replace("&", "").replace("=", "").replace("?", "").replace('¡', "").replace("\a", "").replace("<", "").replace(">", "").replace("/", "").replace("[", "").replace("]", "").replace("(", "").replace(")", "").replace("´", "").replace("!", "").replace("\n", "")
-    return fixed
+        fixed = str(string).replace("'", "").replace("*", "").replace('"', "").replace("+", "").replace("|", "").replace("%", "").replace("$", "").replace("&", "").replace("=", "").replace("?", "").replace('¡', "").replace("\a", "").replace("<", "").replace(">", "").replace("/", "").replace("[", "").replace("]", "").replace("(", "").replace(")", "").replace("´", "").replace("!", "").replace("\n", "")
+        return fixed
+    except Exception as e:
+        print("ERROR IN fixStringClient:")
+        print(e)
+        return False
 
 def checkJwt(token):
     try:
@@ -79,8 +86,16 @@ def dataTableMysql(query, rtn="datatable"):
         print(e)
         return False
 
-def encoded_jwt(user_id):
-    return jwt.encode({'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=1440), 'user_id': user_id}, KEY_TOKEN_AUTH , algorithm='HS256')
+def encoded_jwt(user_id, data = None, custom = False):
+    try:
+        if not custom:
+            return jwt.encode({'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=1440), 'user_id': user_id}, KEY_TOKEN_AUTH , algorithm='HS256')
+        else:
+            return jwt.encode({'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=1440), 'user_id': user_id, 'data': data}, KEY_TOKEN_AUTH , algorithm='HS256')
+    except Exception as e:
+        print("ERROR IN encoded_jwt:")
+        print(e)
+        return False
 
 def cryptStringBcrypt(string, rtn="string"):
     s = random.randint(5,10)
@@ -161,19 +176,6 @@ def CryptData(text, custom="none"):
 def decode_jwt(jwtx):
     try:
         return jwt.decode(jwtx, KEY_TOKEN_AUTH , algorithms=['HS256'])
-    except :
-        return False
-
-def initChat(id_provisional_receptor, id_provisional_emisor):
-    try:
-        get_pv_info = dataTableMysql("SELECT id_provisional, llave_privada FROM usuarios WHERE id_provisional = %s", (id_provisional_receptor,))
-        if len(get_pv_info) >= 1:
-            private_key = ''
-            for data in get_pv_info:
-                private_key = data[1]
-            master_key = ''.join(random.sample('abcdefghijklmnopqrs)tuvwxyz0123456789ABCDEFGHIJKLMOPQRSTUVWXYZ+/= #$&=)(*-_', 32))
-            access_receptor = encWithPass('{"id_emisor": %s, "master_key": %s, "id_receptor": %s}', (id_provisional_emisor, master_key, id_provisional_receptor,), private_key)
-            return {"access_receptor": access_receptor,"master_key": master_key, "auth_token": True}
     except :
         return False
     
@@ -531,4 +533,74 @@ def checkIfNumberInt(number):
         print("ERROR IN checkIfNumberInt:")
         print(e)
         return False
+
+def initChat(id_emisor = None,  id_evento_grupal = None, typeChat = None, id_receptor = None):
+    try:
+        """
+        Type: 1 = Individual 1 - 1
+                  2 = Grupo 1 - *
+        """
+        
+        Response = {
+            'estado_invitacion': None,
+            'pertenece_grupo': False,
+            'son_amigos': False,
+            'existen_usuarios': False,
+            'existe_grupo': False
+        }
+
+        if typeChat == None:
+            return Response
+        
+
+        if typeChat == "2":
+            verificarGrupo = dataTableMysql("SELECT tipo_ev FROM eventos WHERE id = '{}'".format(id_evento_grupal))
+
+            if not verificarGrupo:
+                return Response
+
+            for item in verificarGrupo:
+                if item[0] != 2:
+                    Response['existe_grupo'] = True
+                else:
+                    Response['existe_grupo'] = False
+
+            verificarEmisor = dataTableMysql("SELECT estado_invitacion FROM eventos_grupales WHERE id_usuario = '{}' AND id_evento = '{}'".format(id_emisor, id_evento_grupal))
+
+            if not verificarEmisor:
+                return Response
+            
+            for item in verificarEmisor:
+                Response['estado_invitacion'] = item[0]
+
+            if Response['estado_invitacion'] == 1:
+                Response['pertenece_grupo'] = True
+            else:
+                Response['pertenece_grupo'] = False
+
+            return Response
+            
+        elif typeChat == "1":
+            
+            verificarAmistad = dataTableMysql("SELECT id_usuario, id_contacto, estado_invitacion FROM contactos WHERE (id_usuario = '{}' OR id_contacto = '{}') AND (id_usuario = '{}' OR id_contacto = '{}')".format(id_emisor, id_emisor, id_receptor, id_receptor))
+
+            if not verificarAmistad:
+                return Response
+
+            for item in verificarAmistad:
+                if str(item[0]) == str(id_emisor) and str(item[1]) == str(id_receptor) or str(item[1]) == str(id_emisor) and str(item[0]) == str(id_receptor):
+                    Response['existen_usuarios'] = True
+                    Response['estado_invitacion'] = item[2]
+                    if item[2] == 1:
+                        Response['son_amigos'] = True
+
+            return Response
+        
+        else:
+            return Response
+
+    except Exception as e:
+        print("ERROR IN initChat:")
+        print(e)
+        return Response
 

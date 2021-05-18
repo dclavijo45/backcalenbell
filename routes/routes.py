@@ -4,6 +4,8 @@ from controllers.registerController import RegisterUserControllers
 from controllers.recoveryAccountController import RecoveryAccountControllers
 from controllers.validateChangePwdController import validateChangePwdControllers
 from controllers.validateCodeRecoveryController import ValidateCodeRecoveryAccountControllers
+from controllers.initChatController import InitChatControllers
+from controllers.contactsGController import ContactsGControllers
 
 user = {
     "login_user": "/user/login", "login_user_controllers": LoginUserControllers.as_view("login_api"),
@@ -17,6 +19,10 @@ user = {
     "change_pwd": "/user/validate/changepwd", "change_pwd_controllers": validateChangePwdControllers.as_view("change_pwd_api"),
 }
 
-admin = {
+logged = {
     "manage_events": "/user/manage/events", "manage_events_controllers": EventsControllers.as_view("manage_events_api"),
+
+    "init_chat": "/user/init/chat", "init_chat_controllers": InitChatControllers.as_view("init_chat_api"),
+
+    "manage_contactsG": "/user/manage/contactsg", "manage_contactsG_controllers": ContactsGControllers.as_view("manage_contactsG_api"),
 }

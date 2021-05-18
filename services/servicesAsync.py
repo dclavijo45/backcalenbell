@@ -1,6 +1,6 @@
 import time
 import threading
-from services import *
+from services.services import *
 
 class sendEmailAndSMSThreading:
     def __init__(self, info):

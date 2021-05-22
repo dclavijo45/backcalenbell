@@ -29,20 +29,29 @@ io.on('connection', (socket) => {
 
     jwt.verify(token, process.env.SECRET_KEY, function (err, decoded) {
 
-        decoded.user_id === undefined ? socket.disconnect(force = true) : true;
+        try {
+            decoded.user_id === undefined ? socket.disconnect(force = true) : true;
 
-        /***
-        * @TODO Get user_id from JWT and set in list users with socket-ID
-        */
+            /***
+            * @TODO Get user_id from JWT and set in list users with socket-ID
+            */
 
-        const user_id = String(decoded.user_id);
+            const user_id = String(decoded.user_id);
 
-        UsersList.push(
-            {
-                user_id,
-                socket_id: socket.id
-            }
-        );
+            UsersList.push(
+                {
+                    user_id,
+                    socket_id: socket.id
+                }
+            );
+
+        } catch (error) {
+            /***
+            * @TODO Disconnect user because token is invalid
+            */
+
+            err ? socket.disconnect(force = true) : true;
+        }
 
         /***
          * @TODO Disconnect user because token is invalid

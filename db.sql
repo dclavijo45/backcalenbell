@@ -8,7 +8,7 @@ create table usuarios(
 	usuario char(40) unique not null,
     numero char(10) unique,
 	password char(255) not null,
-    foto_perfil varchar(150) -- NEW
+    foto_perfil varchar(150)
 );
 create table eventos(
 	id int primary key auto_increment not null,

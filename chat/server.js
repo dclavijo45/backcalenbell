@@ -118,6 +118,77 @@ io.on('connection', (socket) => {
 
     });
 
+    socket.on('message-group', (res) => {
+        const { data } = res;
+        const message = String(data.message);
+        const token = data.token;
+        const info_profile_group = data.info_profile_group;
+
+        /***
+        * @TODO Verify if token exists else disconnect user
+        */
+        token == undefined ? socket.disconnect(force = true) : true;
+
+        /***
+        * @TODO Verify if message exists else disconnect user
+        */
+        message == undefined ? socket.disconnect(force = true) : true;
+
+        /***
+        * @TODO Verify if info profile group exists else disconnect user
+        */
+        info_profile_group == undefined ? socket.disconnect(force = true) : true;
+
+        /***
+        * @TODO Verify if message is in the max range and min range else disconnect user
+        */
+        message.trim().lenght > 250 || message.toString().trim().lenght == 0 ? socket.disconnect(force = true) : true;
+
+        /***
+        * @TODO Verify Token. Verify errors. Verify (transmitter and receiver) if is are friends. Emit message if exist user with socket id. ELSE disconnect user.
+        */
+        jwt.verify(token, process.env.SECRET_KEY, function (err, decoded) {
+
+            if (err) {
+                /***
+                 * @TODO Disconnect user because token is invalid
+                 */
+                socket.disconnect(force = true);
+            };
+
+            /***
+             * @TODO Verify Token. Get info for send message. Verify (transmitter and group) if is joined ELSE disconnect user
+             */
+            decoded == undefined ? socket.disconnect(force = true) : true;
+
+            const user_id = Number(decoded.user_id);
+
+            const group_id = Number(decoded.data.id_group);
+
+            const in_group = Boolean(decoded.data.in_group);
+
+            const user_socket = UsersList.find((user) => user.user_id == user_id);
+
+            if (user_socket != undefined && in_group) {
+                console.log("Message sent to group: ", group_id);
+                socket.to(`GROUP-${group_id}`).emit('message', {
+                    transmitter: user_id,
+                    message,
+                    id_group: group_id,
+                    type: 2,
+                    info_profile_group
+                });
+            } else {
+                /***
+                 * @TODO Disconnect user because user is invalid or is not a gruop
+                 */
+                socket.disconnect(force = true);
+            }
+
+        });
+
+    });
+
     socket.on('join-group', (res) => {
         const { data } = res;
 
@@ -135,8 +206,29 @@ io.on('connection', (socket) => {
 
             decoded == undefined ? socket.disconnect(force = true) : true;
 
+            const user_id = Number(decoded.user_id);
+
+            const group_id = Number(decoded.data.id_group);
+
+            const in_group = Boolean(decoded.data.in_group);
+
+            const user_socket = UsersList.find((user) => user.user_id == user_id);
+
+            if (in_group) {
+                socket.join(`GROUP-${group_id}`);
+
+                console.log("user ", user_id, " SID: ", user_socket.socket_id, " is joined to group: ", group_id);
+
+            } else {
+                socket.to(user_socket.socket_id).emit('join-group', {
+                    joined: false,
+                    id_group: group_id
+                });
+            };
+
+
             /***
-             * @TODO Disconnect user because token is invalid
+             * @TODO Disconnect user if token is invalid
              */
 
             err ? socket.disconnect(force = true) : true;
@@ -155,7 +247,9 @@ io.on('connection', (socket) => {
             if (user.socket_id == socket.id) return (user_id = user.user_id);
         });
 
-        UsersList = user_id != null ? UsersList.filter((user) => JSON.stringify(user) !== JSON.stringify({ "user_id": user_id, "socket_id": socket.id })) : true;
+        UsersList = user_id != null ?
+            UsersList.filter((user) => JSON.stringify(user) !== JSON.stringify({ "user_id": user_id, "socket_id": socket.id })) :
+            UsersList;
 
     });
 

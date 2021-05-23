@@ -5,7 +5,7 @@ class Models:
     
     def login(self):
 
-        Response = {"logged": False, "token": None, "name": None, "email": None, "user": None}
+        Response = {"logged": False, "token": None, "name": None, "email": None, "user": None, "photo": None, "id": None}
 
         querySQL = ""
         type = self.info['type']
@@ -14,11 +14,11 @@ class Models:
         if type == "Google" and id_token:
             email = decodeAuth2CertGoogleAPI_GO(id_token)
             if email[0] and email[1]['email_verified']:
-                querySQL = "SELECT id_usuario, nombres, correo, usuario FROM usuarios WHERE correo = '{}'".format(email[1]['email'])
+                querySQL = "SELECT id_usuario, nombres, correo, usuario, foto_perfil FROM usuarios WHERE correo = '{}'".format(email[1]['email'])
             else:
                 return Response
         elif type == "normal" and not id_token:
-            querySQL = "SELECT id_usuario, nombres, correo, usuario, password FROM usuarios WHERE usuario = '{}'".format(self.info['user'])
+            querySQL = "SELECT id_usuario, nombres, correo, usuario, password, foto_perfil FROM usuarios WHERE usuario = '{}'".format(self.info['user'])
         else:
             return Response
 
@@ -28,7 +28,7 @@ class Models:
             for data in dataDB:
                 if decryptStringBcrypt(self.info['password'], data[4]):
                     jwt = encoded_jwt(data[0])
-                    Response = {"logged": True, "token": jwt, "name": data[1], "email": data[2], "user": data[3]}
+                    Response = {"logged": True, "token": jwt, "name": data[1], "email": data[2], "user": data[3], "photo": data[5], "id": data[0]}
                     return Response
                 else:
                     return Response
@@ -38,7 +38,9 @@ class Models:
                         return Response
 
                 jwt = encoded_jwt(data[0])
-                Response = {"logged": True, "token": jwt, "name": data[1], "email": data[2], "user": 'GoogleUser'}
+
+                Response = {"logged": True, "token": jwt, "name": data[1], "email": data[2], "user": 'GoogleUser', "photo": data[4], "id": data[0]}
+                
                 return Response
         else:
             return Response
@@ -58,7 +60,7 @@ class Models:
             if deAuth2[0] and deAuth2[1]['email_verified']:
                 hash_password = cryptStringBcrypt(str(getBigRandomString() + getMinRandomString()))
 
-                querySQL = "INSERT INTO usuarios(nombres, correo, usuario, password) VALUES('{}', '{}', '{}', '{}')".format(deAuth2[1]['name'], deAuth2[1]['email'], deAuth2[1]['email'] + str(hash_password), hash_password)
+                querySQL = "INSERT INTO usuarios(nombres, correo, usuario, password, foto_perfil) VALUES('{}', '{}', '{}', '{}', '{}')".format(deAuth2[1]['name'], deAuth2[1]['email'], deAuth2[1]['email'] + str(hash_password), hash_password, deAuth2[1]['picture'])
             else:
                 return Response
         elif type == "normal" and not id_token:
@@ -464,8 +466,6 @@ class Models:
             if resultado_init['existe_grupo'] == False:
                 return Response
 
-            print("pass") #
-
             Payload['invitation_status'] = resultado_init['estado_invitacion']
             
             Payload['in_group'] = resultado_init['pertenece_grupo']
@@ -474,7 +474,7 @@ class Models:
                 user_id = user_id,
                 data = {
                     'in_group': Payload['in_group'],
-                    'transmitter': Payload['transmitter']
+                    'id_group': id_grupo
                 },
                 custom = True
             )
@@ -524,7 +524,7 @@ class Models:
                 })
             
 
-        fetchGroups = dataTableMysql("SELECT eg.id, eg.id_evento, e.titulo from eventos_grupales eg, eventos e WHERE eg.id_evento = e.id and id_usuario = '{}'".format(user_id))
+        fetchGroups = dataTableMysql("SELECT eg.id, eg.id_evento, e.titulo, e.icono from eventos_grupales eg, eventos e WHERE eg.id_evento = e.id and id_usuario = '{}'".format(user_id))
 
         if not fetchContacts:
             return Response
@@ -533,7 +533,8 @@ class Models:
             Response['contacts'].append({
                 'type': 2,
                 'name': group[2],
-                'id': group[1]
+                'id': group[1],
+                'photo': group[3]
             })
 
         return Response

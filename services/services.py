@@ -288,7 +288,7 @@ def sendEmail(receiver, subject, userRec, reason, MsgType='html'):
         receiver: Receptor del mensaje,
         subject: Asunto del mensaje,
         userRec: Información de ayuda para el mensaje,
-        reason: 1 = Bienvenida, 2 = recuperar contraseña via telefóno, 3 = recuperar contraseña via correo
+        reason: 1 = Bienvenida, 2 = recuperar contraseña via telefóno, 3 = recuperar contraseña via correo, 4 = Envío de solicitud de amistad
     """
     try:
         server = smtplib.SMTP(PROVEEDOR_MAIL)
@@ -314,6 +314,15 @@ def sendEmail(receiver, subject, userRec, reason, MsgType='html'):
                 'name': userRec['name']
             }
             message = UTemplate.recoveryPwdEmailHtml()
+        elif reason == "4":
+            UTemplate.info = {
+                'name': userRec['name'],
+                'photo_contact': userRec['photo_contact'],
+                'name_contact': userRec['name_contact'],
+                'link_acepte': userRec['link_acepte'],
+                'link_decline': userRec['link_decline']
+            }
+            message = UTemplate.sendQueryFriends()
         else:
             return False
 
@@ -426,8 +435,8 @@ def encWithPass(data,  pwd=None):
         if pwd == None:
             pwd = HIGH_SECRET_KEY_PWD
 
-        pwd = pwd.encode()  
-        salt = os.urandom(16)
+        pwd = pwd.encode()
+
         kdf = PBKDF2HMAC(
             algorithm = hashes.SHA256(),
             length = 32,
@@ -452,7 +461,7 @@ def decWithPass(dataEnc, isJson=False, pwd=None):
         if pwd == None:
             pwd = HIGH_SECRET_KEY_PWD
             
-        pwd = pwd.encode()  
+        pwd = pwd.encode()
         
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
@@ -462,7 +471,7 @@ def decWithPass(dataEnc, isJson=False, pwd=None):
             backend = default_backend()
         )
         pwd = base64.urlsafe_b64encode(kdf.derive(pwd))
-
+        
         key= pwd
         fernet = Fernet(key)
         dec = fernet.decrypt(dataEnc.encode())

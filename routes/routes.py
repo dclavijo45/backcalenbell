@@ -6,6 +6,8 @@ from controllers.validateChangePwdController import validateChangePwdControllers
 from controllers.validateCodeRecoveryController import ValidateCodeRecoveryAccountControllers
 from controllers.initChatController import InitChatControllers
 from controllers.contactsGController import ContactsGControllers
+from controllers.searchContactsController import SearchContactsControllers
+from controllers.manageQueryFriendsController import ManageQueryFriendsControllers
 
 user = {
     "login_user": "/user/login", "login_user_controllers": LoginUserControllers.as_view("login_api"),
@@ -25,4 +27,8 @@ logged = {
     "init_chat": "/user/init/chat", "init_chat_controllers": InitChatControllers.as_view("init_chat_api"),
 
     "manage_contactsG": "/user/manage/contactsg", "manage_contactsG_controllers": ContactsGControllers.as_view("manage_contactsG_api"),
+
+    "search_contacts": "/user/search/contacts", "search_contacts_controllers": SearchContactsControllers.as_view("search_contacts_api"),
+
+    "manage_query_friends": "/user/manage/query/friends/<string:token>/", "manage_query_friends_controllers": ManageQueryFriendsControllers.as_view("manage_query_friends_api"),
 }

@@ -539,3 +539,235 @@ class Models:
 
         return Response
 
+    def searchContacts(self):
+        Response = {
+            "auth_token": False,
+            "users": [] # id, name, photo
+        }
+
+        if not checkJwt(self.info['token']):
+            return Response
+
+        Response['auth_token'] = True
+        
+        user_id = decode_jwt(self.info['token']).get("user_id")
+
+        search_key = self.info['search_key'].strip()
+
+        if len(search_key) == 0:
+            return Response
+
+        getUsers = dataTableMysql("SELECT id_usuario, nombres, foto_perfil from usuarios WHERE id_usuario != '{}' and nombres like '%{}%'".format(user_id, search_key))
+
+        for user in getUsers:
+            Response['users'].append({
+                'id': user[0],
+                'name': user[1],
+                'photo': user[2]
+            })
+        
+        return Response
+
+    def addContacts(self):
+        Response = {
+            "auth_token": False,
+            "send": False,
+            "reason": None # Optional: 1 = are friends, 2 = some
+        }
+
+        if not checkJwt(self.info['token']):
+            return Response
+
+        Response['auth_token'] = True
+        
+        user_id = decode_jwt(self.info['token']).get("user_id")
+
+        if not checkIfNumberInt(self.info['user_add']):
+            return Response
+
+        user_add = self.info['user_add']
+
+        if user_id == user_add:
+            Response['reason'] = 2
+
+            return Response
+
+        checkListFriends = dataTableMysql("SELECT * FROM contactos WHERE (id_usuario = '{}' OR id_contacto = '{}')".format(user_id, user_id))
+
+        for data in checkListFriends:
+            if str(data[0]) == str(user_id) and str(data[1]) == str(user_add):
+                if str(data[2]) == "1": # are friends?
+                    Response['reason'] = 1
+
+                    return Response
+
+                if str(data[2]) != "1":
+                    deleteForFix = dataTableMysql("DELETE FROM contactos WHERE (id_usuario = '{}') AND (id_contacto = '{}')".format(user_id, user_add))
+                    break
+
+            if str(data[1]) == str(user_id) and str(data[0]) == str(user_add):
+                if str(data[2]) == "1": # are friends?
+                    Response['reason'] = 1
+
+                    return Response
+
+                if str(data[2]) == "0":
+                    deleteForFix = dataTableMysql("DELETE FROM contactos WHERE (id_usuario = '{}') AND (id_contacto = '{}')".format(user_add, user_id))
+                    break
+
+        addUserToFriendsList = dataTableMysql("INSERT INTO contactos VALUES('{}', '{}', '{}')".format(user_id, user_add, 0), "rowcount")
+
+        if addUserToFriendsList:
+            name_get_user = ''
+            photo_contact = ''
+
+            name_user_id = dataTableMysql("SELECT nombres, foto_perfil FROM usuarios WHERE id_usuario = '{}'".format(user_id))
+
+            for data in name_user_id:
+                name_get_user = data[0]
+                photo_contact = data[1]
+
+            info_contact = dataTableMysql("SELECT nombres, correo FROM usuarios WHERE id_usuario = '{}'".format(user_add))
+
+            for data in info_contact:
+                Token_Invitation_acepted = encWithPass(
+                    data = "{'mode': 'invitation_friends', 'user_sent': '"+str(user_add)+"', 'user_sender': '"+str(user_id)+"', 'status': 'true'}"
+                )
+
+                # Token_Invitation_acepted = ""
+
+                # for char in Token_Invitation_acepted_N_URL[1]:
+                #     if char.isupper():
+                #         Token_Invitation_acepted += "*"+char
+                #     else:
+                #         Token_Invitation_acepted += char
+
+                Token_Invitation_decline = encWithPass(
+                    data = "{'mode': 'invitation_friends', 'user_sent': '"+str(user_add)+"', 'user_sender': '"+str(user_id)+"', 'status': 'false'}"
+                )
+
+                # Token_Invitation_decline = ""
+
+                # for char in Token_Invitation_decline_N_URL[1]:
+                #     if char.isupper():
+                #         Token_Invitation_decline += "*"+char
+                #         
+                #     else:
+                #         Token_Invitation_decline += char
+
+                send_invitation = sendEmail(
+                    receiver = data[1],
+                    subject = 'Solicitud de amistad',
+                    userRec = {
+                        'name': data[0],
+                        'photo_contact': photo_contact,
+                        'name_contact': name_get_user,
+                        'link_decline': Token_Invitation_decline[1],
+                        'link_acepte': Token_Invitation_acepted[1]
+                    },reason = '4')
+
+                if send_invitation:
+                    Response['send'] = True
+        
+        return Response
+
+    def deleteContacts(self):
+        Response = {
+            'auth_token': False,
+            'deleted': False,
+            'reason': None # 1 = Joined event group, 2 = invalid payload
+        }
+
+        if not checkJwt(self.info['token']):
+            return Response
+
+        Response['auth_token'] = True
+        
+        user_id = decode_jwt(self.info['token']).get("user_id")
+
+        payload = self.info['payload'].split(",") if self.info['payload'] else None
+
+        if payload == None:
+            Response['reason'] = 2
+
+            return Response
+
+        id_contactG = payload[0]
+
+        if not checkIfNumberInt(id_contactG):
+            Response['reason'] = 2
+
+            return Response
+        
+        type_contact = payload[1]
+
+        if len(type_contact) != 1 and type_contact not in ['1', '2']:
+            Response['reason'] = 2
+
+            return Response
+
+        if type_contact == "1":
+            checkEvents = dataTableMysql("SELECT id FROM eventos WHERE tipo_ev = 2 AND codigo = '{}'".format(user_id))
+
+            checkIfEventsGroup = dataTableMysql("SELECT id_evento, estado_invitacion FROM eventos_grupales WHERE id_usuario = '{}'".format(id_contactG))
+
+            haveEvents = False
+
+            for data in checkEvents:
+                for data2 in checkIfEventsGroup:
+                    if str(data[0]) == str(data2[0]):
+                        if str(data2[1]) == "1":
+                            haveEvents = True
+
+                            break
+
+            if not haveEvents:
+                deleteContactG = dataTableMysql("DELETE FROM contactos WHERE (id_usuario = '{}' AND id_contacto = '{}') OR (id_usuario = '{}' AND id_contacto = '{}')".format(user_id, id_contactG, id_contactG, user_id),"rowcount")
+                
+                if not deleteContactG:
+                    Response['reason'] = 2
+                else:
+                    Response['deleted'] = True
+
+            else:
+                Response['reason'] = 1
+        
+        return Response
+
+    # Manage actions query friends
+    def manageQueryFriendsM(self):
+        token = decWithPass(self.info['token'], isJson=True)
+
+        if not token[0]:
+            print("TOKEN INVALID")
+            pass
+        else:
+            info_token = token[1]
+
+            if info_token['mode'] == 'invitation_friends':
+
+                if info_token['status'] == "true":
+                    changeStatusDB = dataTableMysql("UPDATE contactos SET estado_invitacion = 1 WHERE (id_usuario = '{}') AND (id_contacto = '{}')".format(info_token['user_sender'], info_token['user_sent']), "rowcount")
+                elif info_token['status'] == "false":
+                    checkEvents = dataTableMysql("SELECT id FROM eventos WHERE tipo_ev = 2 AND codigo = '{}'".format(info_token['user_sender']))
+
+                    checkIfEventsGroup = dataTableMysql("SELECT id_evento, estado_invitacion FROM eventos_grupales WHERE id_usuario = '{}'".format(info_token['user_sent']))
+
+                    haveEvents = False
+
+                    for data in checkEvents:
+                        for data2 in checkIfEventsGroup:
+                            if str(data[0]) == str(data2[0]):
+                                if str(data2[1]) == "1":
+                                    haveEvents = True
+
+                                    break
+
+                    if not haveEvents:
+                        changeStatusDB = dataTableMysql("UPDATE contactos SET estado_invitacion = 2 WHERE (id_usuario = '{}') AND (id_contacto = '{}')".format(info_token['user_sender'], info_token['user_sent']), "rowcount")
+                else:
+                    pass
+
+
+
+

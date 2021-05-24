@@ -33,10 +33,24 @@ io.on('connection', (socket) => {
             decoded.user_id === undefined ? socket.disconnect(force = true) : true;
 
             /***
-            * @TODO Get user_id from JWT and set in list users with socket-ID
+            * @TODO Get user_id from JWT and set in list users with socket-ID. Verify if user is not logged else disconnect
             */
 
             const user_id = String(decoded.user_id);
+
+            let socket_id_exp = null;
+
+            UsersList.some((user) => {
+                if (user.user_id == user_id) return (socket_id_exp = user.socket_id);
+            });
+
+            if (socket_id_exp != null) {
+                UsersList = UsersList.filter((user) => JSON.stringify(user) !== JSON.stringify({ "socket_id": socket_id_exp, "user_id": user_id }));
+
+                socket.broadcast.to(socket_id_exp).emit("kick", {
+                    reason: 1
+                });
+            };
 
             UsersList.push(
                 {

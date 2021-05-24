@@ -4,6 +4,8 @@ from os import environ as env
 KEY_TOKEN_AUTH = env['key_auth_token']
 SECRET_KEY = env['secret_key']
 HIGH_SECRET_KEY_PWD = env['high_secret_key_pwd']
+SERVER_FRONT = env['SERVER_FRONT']
+SERVER_BACK = env['SERVER_BACK']
 
 # MySQL config 
 MYSQL_DB = env['mysql_db']

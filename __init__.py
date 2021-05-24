@@ -32,3 +32,7 @@ app.add_url_rule(logged["init_chat"], view_func=logged["init_chat_controllers"])
 
 app.add_url_rule(logged["manage_contactsG"], view_func=logged["manage_contactsG_controllers"])
 
+app.add_url_rule(logged["search_contacts"], view_func=logged["search_contacts_controllers"])
+
+app.add_url_rule(logged["manage_query_friends"], view_func=logged["manage_query_friends_controllers"])
+

@@ -65,7 +65,7 @@ class Models:
                 return Response
         elif type == "normal" and not id_token:
             hash_password = cryptStringBcrypt(self.info['password'])
-            querySQL = "INSERT INTO usuarios(nombres, correo, usuario, password) VALUES('{}', '{}', '{}', '{}')".format(self.info['name'], self.info['email'], self.info['user'], hash_password)
+            querySQL = "INSERT INTO usuarios(nombres, correo, usuario, password, foto_perfil) VALUES('{}', '{}', '{}', '{}', 'https://www.dropbox.com/s/4nqmlzijvaeqtts/avatar%20-%20profile.jpeg?dl=1')".format(self.info['name'], self.info['email'], self.info['user'], hash_password)
         else:
             return Response
         

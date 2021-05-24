@@ -10,9 +10,7 @@ class RegisterUserControllers(MethodView):
         Register
     """
     def post(self):
-            # time.sleep(1)
             json_request = request.get_json()
-            # return jsonify({"registered": True}), 200
             
             Model = Models()
 

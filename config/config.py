@@ -20,7 +20,7 @@ CORREO_MAIL = env['correo_mail']
 PASSWORD_MAIL = env['password_mail']
 
 # # DropBox Config
-# ACCESS_TOKEN = TOKEN_DROPBOX_env
+ACCESS_TOKEN = ''
 
 
 # Google Auth API

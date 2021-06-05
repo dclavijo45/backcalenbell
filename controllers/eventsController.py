@@ -31,7 +31,7 @@ class EventsControllers(MethodView):
             'date': fixStringClient(json_request.get("date")),
             'description': fixStringClient(json_request.get("description")),
             'type_ev': fixStringClient(json_request.get("type_ev")),
-            'icon': fixStringClient(json_request.get("icon")),
+            'icon': fixStringClient(json_request.get("icon"))
         }
         data = Model.registerEvents()
 
@@ -53,7 +53,7 @@ class EventsControllers(MethodView):
             'description': fixStringClient(json_request.get("description")),
             'type_ev': fixStringClient(json_request.get("type_ev")),
             'icon': fixStringClient(json_request.get("icon")),
-            'id_event': fixStringClient(json_request.get("id_event")),
+            'id_event': fixStringClient(json_request.get("id_event"))
         }
         
         data = Model.changeEvents()

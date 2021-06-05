@@ -81,7 +81,7 @@ io.on('connection', (socket) => {
 
     socket.on('message-one-one', (res) => {
         const { data } = res;
-        const message = String(data.message);
+        let message = String(data.message);
         const token = data.token;
 
         /***
@@ -122,8 +122,7 @@ io.on('connection', (socket) => {
 
             UsersList.some((user) => {
                 if (user.user_id == receiver) {
-                    console.log(`User ${transmitter} (${socket.id}) is sent message to ${receiver} (${user.socket_id})`);
-                    return (socket.broadcast.to(user.socket_id).emit('message', { transmitter, message, type: 1 }));
+                    return (socket.broadcast.to(user.socket_id).emit('message', { transmitter, message: message.replace("*", "").replace("\a", "").replace("<", "").replace(">", "").replace("[", "").replace("]", "").replace("´", "").replace("\n", ""), type: 1 }));
 
                 }
             });
@@ -134,7 +133,7 @@ io.on('connection', (socket) => {
 
     socket.on('message-group', (res) => {
         const { data } = res;
-        const message = String(data.message);
+        let message = String(data.message);
         const token = data.token;
         const info_profile_group = data.info_profile_group;
 
@@ -148,13 +147,14 @@ io.on('connection', (socket) => {
         */
         message == undefined ? socket.disconnect(force = true) : true;
 
+
         /***
         * @TODO Verify if info profile group exists else disconnect user
         */
         info_profile_group == undefined ? socket.disconnect(force = true) : true;
 
         /***
-        * @TODO Verify if message is in the max range and min range else disconnect user
+        * @TODO Verify if message is in the max range and min range else disconnect user and review
         */
         message.trim().lenght > 250 || message.toString().trim().lenght == 0 ? socket.disconnect(force = true) : true;
 
@@ -187,7 +187,7 @@ io.on('connection', (socket) => {
                 console.log("Message sent to group: ", group_id);
                 socket.to(`GROUP-${group_id}`).emit('message', {
                     transmitter: user_id,
-                    message,
+                    message: message.trim().replace("*", "").replace("\a", "").replace("<", "").replace(">", "").replace("[", "").replace("]", "").replace("´", "").replace("\n", ""),
                     id_group: group_id,
                     type: 2,
                     info_profile_group

@@ -12,6 +12,7 @@ class Models:
             "email": None,
             "user": None,
             "photo": None,
+            "number_tel": None,
             "id": None,
         }
 
@@ -28,7 +29,7 @@ class Models:
             else:
                 return Response
         elif type == "normal" and not id_token:
-            querySQL = "SELECT id_usuario, nombres, correo, usuario, password, foto_perfil FROM usuarios WHERE usuario = '{}'".format(
+            querySQL = "SELECT id_usuario, nombres, correo, usuario, password, foto_perfil, numero FROM usuarios WHERE usuario = '{}'".format(
                 self.info["user"]
             )
         else:
@@ -47,6 +48,7 @@ class Models:
                         "email": data[2],
                         "user": data[3],
                         "photo": data[5],
+                        "number_tel": data[6],
                         "id": data[0],
                     }
                     return Response
@@ -80,6 +82,9 @@ class Models:
 
         type = self.info["type"]
         id_token = self.info["id_token"] if self.info["id_token"] else None
+
+        if self.info["user"] == "GoogleUser":
+            return Response
 
         if type == "Google" and id_token:
             deAuth2 = decodeAuth2CertGoogleAPI_GO(id_token)

@@ -106,33 +106,39 @@ def dataTableMysql(query, rtn="datatable"):
         # print("OP 2")
         # print(query)
         mycursor.execute(query)
-        # print("OP 3")
-        data = mycursor.fetchall()
         # print("OP 4")
+        data = False
+        
+        if rtn == "datatable":
+            data = mycursor.fetchall()
+
         mydb.commit()
         # print("OP 5")
 
         if rtn == "datatable":
+            # print("OP 3")
+
             mycursor.close()
+
             return data
-        elif rtn == "rowcount":
-            # print(mycursor.rowcount)
+
+        if rtn == "rowcount":
             if mycursor.rowcount >= 1:
                 mycursor.close()
                 return True
             else:
                 mycursor.close()
                 return False
-        else:
-            mycursor.close()
-            return data
+
+        mycursor.close()
+        return False
     except Exception as e:
         print("ERROR in dataTableMysql:")
         print(e)
         return False
 
 
-def encoded_jwt(user_id, data=None, custom=False, Time=60):
+def encoded_jwt(user_id, data=None, custom=False, Time=1440):
     try:
         if not custom:
             return jwt.encode(
@@ -287,10 +293,10 @@ def createStringRandom(size=0):
 
 def saveImg(data, route):
     try:
-        nameImg = str(getBigRandomString())
+        nameImg = str(getBigRandomString()) + ".jpg"
         im = Image.open(BytesIO(base64.b64decode(data)))
-        im.save("{}".format(route + nameImg + ".png"), "PNG")
-        return [True, nameImg + ".png"]
+        im.save("{}".format(route + nameImg), "jpeg", quality=90)
+        return [True, nameImg]
     except:
         return [False]
 
@@ -329,20 +335,18 @@ def fixBase64String(b64):
     return fixed
 
 
-def saveFileCloudDpBx(route, img, routeImg):
+def saveFileCloudDpBx(nameImg, routeCloud, routeImg=""):
     try:
-        nameImg = str(getBigRandomString())
         con = dropbox.Dropbox(ACCESS_TOKEN)
-        Image64 = Image.open(BytesIO(base64.b64decode(img)))
-        nameImage = "{}".format(nameImg + ".jpg")
-        Image64.save(routeImg + nameImage, "jpeg", quality=90)
         result = ""
-        with open(routeImg + nameImage, "rb") as f:
-            result = con.files_upload(f.read(), route + nameImage)
+        with open(routeImg + nameImg, "rb") as f:
+            result = con.files_upload(f.read(), routeCloud + nameImg)
 
-        os.remove(routeImg + nameImage)
+        os.remove(routeImg + nameImg)
 
-        link = con.sharing_create_shared_link(path=route + nameImage, short_url=False)
+        link = con.sharing_create_shared_link(
+            path=routeCloud + nameImg, short_url=False
+        )
 
         ImageFinal = link.url.replace("?dl=0", "?dl=1")
 
@@ -376,12 +380,10 @@ def updateFileCloudDpBx(route, img, imgPrev):
         return [False, ""]
 
 
-def delFileCloudDpBx(route, img):
+def delFileCloudDpBx(routeCloud, nameFileCloud):
     try:
-        fix = img
-        nameImage = fix.replace(".png", ".jpg")
         con = dropbox.Dropbox(ACCESS_TOKEN)
-        path = route + nameImage
+        path = routeCloud + nameFileCloud
         con.files_delete(path)
         return True
     except Exception as e:
@@ -533,12 +535,13 @@ def checkStringEmail(email):
 
 def checkStringNumberTel(number):
     try:
-        root = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
         if number is None:
             return False
 
         if len(number) != 12:
             return False
+
+        root = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
         for n in number:
             if n not in root:
@@ -572,6 +575,7 @@ def checkStringNumberSizeType(number, size=0):
     except Exception as e:
         print("ERROR FROM checkStringNumberSizeType:")
         print(e)
+        return False
 
 
 def encWithPass(data, pwd=None):
@@ -786,3 +790,16 @@ def initChat(id_emisor=None, id_evento_grupal=None, typeChat=None, id_receptor=N
         print("ERROR IN initChat:")
         print(e)
         return Response
+
+def findNumbersInString(string):
+    try:
+        root = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+        for data in str(string):
+            if data in root:
+                return True
+
+        return False
+    except Exception as e:
+        print("ERROR in findNumbersInString:")
+        print(e)
+        return False

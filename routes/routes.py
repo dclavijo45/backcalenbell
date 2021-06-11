@@ -13,6 +13,7 @@ from controllers.manageQueryFriendsController import ManageQueryFriendsControlle
 from controllers.participantsEventController import ParticipantsEventControllers
 from controllers.joinEventController import JoinEventControllers
 from controllers.deleteParticipantController import DeleteParticipantControllers
+from controllers.profileSettingsController import ProfileSettingsControllers
 
 user = {
     "login_user": "/user/login",
@@ -54,8 +55,14 @@ logged = {
     ),
     "join_event": "/user/join/event/<string:token>/",
     "join_event_controllers": JoinEventControllers.as_view("join_event_api"),
+
     "delete_participant_event": "/user/delete/participant/",
     "delete_participant_event_controllers": DeleteParticipantControllers.as_view(
         "delete_participant_event_api"
     ),
+
+    "profile_settings": "/user/profile/settings/",
+    "profile_settings_controllers": ProfileSettingsControllers.as_view(
+        "profile_settings_api"
+    ),    
 }

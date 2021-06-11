@@ -9,7 +9,6 @@ class LoginUserControllers(MethodView):
         Login
     """
     def post(self):
-        # time.sleep(1)
         json_request = request.get_json(force=True)
 
         Model = Models()

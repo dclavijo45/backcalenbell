@@ -60,3 +60,8 @@ app.add_url_rule(
     logged["delete_participant_event"],
     view_func=logged["delete_participant_event_controllers"],
 )
+
+app.add_url_rule(
+    logged["profile_settings"],
+    view_func=logged["profile_settings_controllers"],
+)

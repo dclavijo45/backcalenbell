@@ -122,7 +122,7 @@ io.on('connection', (socket) => {
 
             UsersList.some((user) => {
                 if (user.user_id == receiver) {
-                    return (socket.broadcast.to(user.socket_id).emit('message', { transmitter, message: message.replace("*", "").replace("\a", "").replace("<", "").replace(">", "").replace("[", "").replace("]", "").replace("´", "").replace("\n", ""), type: 1 }));
+                    return (socket.broadcast.to(user.socket_id).emit('message', { transmitter, message: message.replace("*", "").replace("<", "").replace(">", "").replace("[", "").replace("]", "").replace("´", "").replace("\n", ""), type: 1 }));
 
                 }
             });
@@ -187,7 +187,7 @@ io.on('connection', (socket) => {
                 console.log("Message sent to group: ", group_id);
                 socket.to(`GROUP-${group_id}`).emit('message', {
                     transmitter: user_id,
-                    message: message.trim().replace("*", "").replace("\a", "").replace("<", "").replace(">", "").replace("[", "").replace("]", "").replace("´", "").replace("\n", ""),
+                    message: message.trim().replace("*", "").replace("<", "").replace(">", "").replace("[", "").replace("]", "").replace("´", "").replace("\n", ""),
                     id_group: group_id,
                     type: 2,
                     info_profile_group

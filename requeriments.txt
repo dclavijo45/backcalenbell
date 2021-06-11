@@ -8,3 +8,4 @@ pkcs7==0.1.2
 pycrypto==2.6.1
 pillow==8.2.0
 cryptography==3.4.7
+dropbox==11.10.0

@@ -24,7 +24,7 @@ class Models:
         if type == "Google" and id_token:
             email = decodeAuth2CertGoogleAPI_GO(id_token)
             if email[0] and email[1]["email_verified"]:
-                querySQL = "SELECT id_usuario, nombres, correo, usuario, foto_perfil FROM usuarios WHERE correo = '{}'".format(
+                querySQL = "SELECT id_usuario, nombres, correo, usuario, foto_perfil, numero FROM usuarios WHERE correo = '{}'".format(
                     email[1]["email"])
             else:
                 return Response
@@ -67,6 +67,7 @@ class Models:
                     "email": data[2],
                     "user": "GoogleUser",
                     "photo": data[4],
+                    "number_tel": data[5],
                     "id": data[0],
                 }
 
